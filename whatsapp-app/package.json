@@ -1,0 +1,14 @@
+{
+  "name": "whatsapp-automation",
+  "version": "1.0.0",
+  "description": "Tableau de bord multi-clients : base de contacts + envoi automatisé de messages WhatsApp (WhatsApp Cloud API)",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "test": "node --test"
+  }
+}

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WhatsApp Automation</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="top">
+    <h1>WhatsApp Automation</h1>
+    <span id="mode" class="badge"></span>
+    <button id="logout" class="ghost hidden">Déconnexion</button>
+  </header>
+
+  <!-- Connexion -->
+  <section id="login" class="card hidden">
+    <h2>Connexion</h2>
+    <form id="login-form">
+      <label>Jeton d'accès (ADMIN_TOKEN)
+        <input name="token" type="password" required autocomplete="current-password" />
+      </label>
+      <button type="submit">Se connecter</button>
+      <p id="login-error" class="error hidden"></p>
+    </form>
+  </section>
+
+  <main id="app" class="hidden">
+    <!-- Statistiques -->
+    <section class="stats" id="stats"></section>
+
+    <div class="grid">
+      <!-- Contacts -->
+      <section class="card">
+        <h2>Contacts <span id="contact-count" class="muted"></span></h2>
+        <form id="csv-form" class="row">
+          <input type="file" name="file" accept=".csv,text/csv" required />
+          <button type="submit">Importer CSV</button>
+        </form>
+        <p class="hint">Colonnes : <code>phone</code> (obligatoire), <code>name</code>, <code>tags</code> (séparés par <code>|</code>), et toute autre colonne utilisable dans les modèles.</p>
+        <form id="contact-form" class="row">
+          <input name="phone" placeholder="Téléphone" required />
+          <input name="name" placeholder="Nom" />
+          <input name="tags" placeholder="Tags (ex: vip|promo)" />
+          <button type="submit">Ajouter</button>
+        </form>
+        <form id="search-form" class="row">
+          <input name="q" placeholder="Rechercher nom / numéro" />
+          <input name="tag" placeholder="Filtrer par tag" />
+          <button type="submit" class="ghost">Filtrer</button>
+        </form>
+        <div class="table-wrap">
+          <table id="contacts"></table>
+        </div>
+      </section>
+
+      <!-- Modèles -->
+      <section class="card">
+        <h2>Modèles de message</h2>
+        <p class="hint">Le modèle doit être approuvé par Meta. <code>wa_name</code> = nom exact du modèle dans WhatsApp Manager. Les paramètres <code>{{1}}</code>, <code>{{2}}</code>… correspondent aux champs listés (ex: <code>name,city</code>).</p>
+        <form id="template-form" class="stack">
+          <input name="name" placeholder="Nom interne" required />
+          <input name="wa_name" placeholder="Nom du modèle WhatsApp (ex: rappel_rdv)" required />
+          <div class="row">
+            <input name="language" value="fr" placeholder="Langue (fr, en, ar…)" />
+            <input name="params" placeholder="Champs : name,city" />
+          </div>
+          <textarea name="body" rows="3" placeholder="Aperçu : Bonjour {{name}}, votre rendez-vous à {{city}} est confirmé." required></textarea>
+          <button type="submit">Créer le modèle</button>
+        </form>
+        <ul id="templates" class="list"></ul>
+      </section>
+
+      <!-- Campagnes -->
+      <section class="card wide">
+        <h2>Campagnes</h2>
+        <form id="campaign-form" class="row wrap">
+          <input name="name" placeholder="Nom de la campagne" />
+          <select name="template_id" required id="template-select"></select>
+          <input name="tag" placeholder="Tag ciblé (vide = tous)" />
+          <input name="scheduled_at" type="datetime-local" title="Laisser vide pour envoyer maintenant" />
+          <button type="submit">Lancer</button>
+        </form>
+        <div class="table-wrap">
+          <table id="campaigns"></table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
