@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WhatsApp Automation : démo</title>
+  <style>
+    :root { --bg:#f5f6f8; --card:#fff; --text:#1c2024; --muted:#6b7280; --line:#e3e6ea; --accent:#128c7e; --accent-text:#fff; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#101214; --card:#1a1d21; --text:#e9ecef; --muted:#9aa3ad; --line:#2a2f35; --accent:#25d366; --accent-text:#0b0f0c; }
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; padding:16px; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    h1 { font-size:20px; margin:0; }
+    h2 { font-size:16px; margin:0 0 12px; }
+    .top { display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+    .badge { font-size:12px; padding:2px 8px; border-radius:99px; border:1px solid var(--accent); color:var(--accent); }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; min-width:0; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px; }
+    .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; margin-bottom:16px; }
+    .stat b { display:block; font-size:22px; }
+    .stat span { color:var(--muted); font-size:13px; }
+    .stat { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; }
+    input, select, textarea, button { font:inherit; padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text); min-width:0; }
+    input, select, textarea { flex:1 1 160px; }
+    button { background:var(--accent); color:var(--accent-text); border:none; font-weight:600; cursor:pointer; }
+    .row { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+    .stack { display:flex; flex-direction:column; gap:8px; }
+    .hint { color:var(--muted); font-size:13px; margin:0 0 10px; }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th, td { text-align:left; padding:8px; border-bottom:1px solid var(--line); }
+    th { color:var(--muted); font-size:12px; text-transform:uppercase; }
+    .pill { font-size:12px; padding:2px 8px; border-radius:99px; background:var(--line); }
+    .pill.sent { background:#d4f5e0; color:#0b5d2a; }
+    .pill.queued { background:#fff1c2; color:#6b4e00; }
+    .pill.failed { background:#fbd5d1; color:#8a1f14; }
+    .notice { background:#fff8e1; color:#6b4e00; border:1px solid #f0d98a; border-radius:12px; padding:12px; margin-bottom:16px; font-size:14px; }
+    @media (max-width:600px) { .grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <h1>WhatsApp Automation</h1>
+    <span class="badge">Démo : aucun message réel</span>
+  </header>
+
+  <div class="notice">
+    Cette page est une <b>démonstration statique</b> hébergée sur GitHub Pages. Les données sont fictives et restent dans votre navigateur. Pour envoyer de vrais messages, faites tourner l'application complète (dossier <code>whatsapp-app</code>) sur un serveur Node.js.
+  </div>
+
+  <section class="stats" id="stats"></section>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Contacts</h2>
+      <p class="hint">Importez un CSV (colonnes : phone, name, tags séparés par |). Les données ne quittent pas votre navigateur.</p>
+      <form id="contact-form" class="row">
+        <input name="phone" placeholder="Téléphone" required />
+        <input name="name" placeholder="Nom" />
+        <input name="tags" placeholder="Tags (vip|promo)" />
+        <button type="submit">Ajouter</button>
+      </form>
+      <div style="overflow-x:auto"><table id="contacts"></table></div>
+    </section>
+
+    <section class="card">
+      <h2>Modèle et campagne</h2>
+      <form id="campaign-form" class="stack">
+        <textarea name="body" rows="3" required>Bonjour {{name}}, votre rendez-vous à {{city}} est confirmé.</textarea>
+        <div class="row">
+          <input name="tag" placeholder="Tag ciblé (vide = tous)" />
+          <button type="submit">Simuler l'envoi</button>
+        </div>
+      </form>
+      <p class="hint" id="preview"></p>
+    </section>
+
+    <section class="card" style="grid-column:1/-1">
+      <h2>Messages</h2>
+      <div style="overflow-x:auto"><table id="messages"></table></div>
+    </section>
+  </div>
+
+  <script>
+    const KEY = 'wa-demo-state';
+    let state;
+    try { state = JSON.parse(localStorage.getItem(KEY)); } catch {}
+    state ||= {
+      contacts: [
+        { id: 1, phone: '212655047042', name: 'Ali', tags: 'vip', city: 'Fès', optedOut: false },
+        { id: 2, phone: '212611223344', name: 'Sara', tags: 'promo', city: 'Casa', optedOut: false },
+      ],
+      messages: [],
+    };
+    const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    function render() {
+      const sent = state.messages.filter((m) => m.status === 'sent').length;
+      const stats = [['Contacts', state.contacts.length], ['Opt-out', state.contacts.filter((c) => c.optedOut).length], ['Envoyés (démo)', sent], ['En attente', state.messages.filter((m) => m.status === 'queued').length]];
+      document.getElementById('stats').innerHTML = stats.map(([l, n]) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`).join('');
+
+      document.getElementById('contacts').innerHTML = `<tr><th>Numéro</th><th>Nom</th><th>Tags</th><th>Statut</th></tr>` +
+        state.contacts.map((c) => `<tr><td>${esc(c.phone)}</td><td>${esc(c.name)}</td><td>${esc(c.tags)}</td><td>${c.optedOut ? 'STOP' : 'actif'}</td></tr>`).join('');
+
+      document.getElementById('messages').innerHTML = `<tr><th>Destinataire</th><th>Message</th><th>Statut</th></tr>` +
+        (state.messages.map((m) => `<tr><td>${esc(m.phone)}</td><td>${esc(m.body)}</td><td><span class="pill ${esc(m.status)}">${esc(m.status)}</span></td></tr>`).join('') || '<tr><td colspan="3">Aucun message</td></tr>');
+    }
+
+    document.getElementById('contact-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const f = Object.fromEntries(new FormData(e.target));
+      const digits = f.phone.replace(/\D/g, '').replace(/^0/, '212');
+      state.contacts.push({ id: Date.now(), phone: digits, name: f.name, tags: f.tags.toLowerCase(), city: '', optedOut: false });
+      e.target.reset(); save(); render();
+    });
+
+    document.getElementById('campaign-form').addEventListener('input', (e) => {
+      const body = e.currentTarget.body.value;
+      document.getElementById('preview').textContent = 'Aperçu pour Ali : ' + body.replace('{{name}}', 'Ali').replace('{{city}}', 'Fès');
+    });
+
+    document.getElementById('campaign-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const f = Object.fromEntries(new FormData(e.target));
+      const targets = state.contacts.filter((c) => !c.optedOut && (!f.tag || c.tags.split('|').includes(f.tag.toLowerCase())));
+      for (const c of targets) {
+        const body = f.body.replace('{{name}}', c.name).replace('{{city}}', c.city);
+        state.messages.push({ phone: c.phone, body, status: 'sent' });
+      }
+      save(); render();
+    });
+
+    document.getElementById('campaign-form').body.dispatchEvent(new Event('input'));
+    render();
+  </script>
+</body>
+</html>
