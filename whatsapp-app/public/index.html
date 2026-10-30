@@ -7,86 +7,122 @@
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <header class="top">
-    <h1>WhatsApp Automation</h1>
-    <span id="mode" class="badge"></span>
-    <button id="logout" class="ghost hidden">Déconnexion</button>
-  </header>
-
   <!-- Connexion -->
-  <section id="login" class="card hidden">
-    <h2>Connexion</h2>
-    <form id="login-form">
-      <label>Jeton d'accès (ADMIN_TOKEN)
+  <main id="login" class="login hidden">
+    <form id="login-form" class="login-card">
+      <div class="brand brand-lg"><span class="logo">W</span> WhatsApp Automation</div>
+      <p class="muted">Connectez-vous avec le jeton administrateur défini dans <code>.env</code>.</p>
+      <label>Jeton d'accès
         <input name="token" type="password" required autocomplete="current-password" />
       </label>
-      <button type="submit">Se connecter</button>
-      <p id="login-error" class="error hidden"></p>
+      <button type="submit" class="btn primary block">Se connecter</button>
+      <p id="login-error" class="error hidden">Jeton refusé.</p>
     </form>
-  </section>
+  </main>
 
-  <main id="app" class="hidden">
-    <!-- Statistiques -->
-    <section class="stats" id="stats"></section>
+  <!-- Application -->
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <div class="brand"><span class="logo">W</span> WhatsApp Automation</div>
+      <nav>
+        <a href="#overview" data-page="overview"><span class="ico">◉</span> Vue d'ensemble</a>
+        <a href="#contacts" data-page="contacts"><span class="ico">☰</span> Contacts</a>
+        <a href="#templates" data-page="templates"><span class="ico">✎</span> Modèles</a>
+        <a href="#campaigns" data-page="campaigns"><span class="ico">➤</span> Campagnes</a>
+      </nav>
+      <div class="sidebar-foot">
+        <span id="mode" class="badge"></span>
+        <button id="theme" class="btn ghost small" title="Changer le thème">◐</button>
+        <button id="logout" class="btn ghost small">Quitter</button>
+      </div>
+    </aside>
 
-    <div class="grid">
+    <div class="content">
+      <header class="topbar">
+        <h1 id="page-title">Vue d'ensemble</h1>
+        <span class="muted" id="updated"></span>
+      </header>
+
+      <!-- Vue d'ensemble -->
+      <section class="page" data-page="overview">
+        <div class="stats" id="stats"></div>
+        <div class="card">
+          <div class="card-head"><h2>Dernières campagnes</h2><a href="#campaigns" class="link">Voir tout →</a></div>
+          <div class="table-wrap"><table id="recent-campaigns"></table></div>
+        </div>
+      </section>
+
       <!-- Contacts -->
-      <section class="card">
-        <h2>Contacts <span id="contact-count" class="muted"></span></h2>
-        <form id="csv-form" class="row">
-          <input type="file" name="file" accept=".csv,text/csv" required />
-          <button type="submit">Importer CSV</button>
-        </form>
-        <p class="hint">Colonnes : <code>phone</code> (obligatoire), <code>name</code>, <code>tags</code> (séparés par <code>|</code>), et toute autre colonne utilisable dans les modèles.</p>
-        <form id="contact-form" class="row">
-          <input name="phone" placeholder="Téléphone" required />
-          <input name="name" placeholder="Nom" />
-          <input name="tags" placeholder="Tags (ex: vip|promo)" />
-          <button type="submit">Ajouter</button>
-        </form>
-        <form id="search-form" class="row">
-          <input name="q" placeholder="Rechercher nom / numéro" />
-          <input name="tag" placeholder="Filtrer par tag" />
-          <button type="submit" class="ghost">Filtrer</button>
-        </form>
-        <div class="table-wrap">
-          <table id="contacts"></table>
+      <section class="page" data-page="contacts">
+        <div class="card">
+          <div class="card-head">
+            <h2>Contacts <span id="contact-count" class="muted"></span></h2>
+            <div class="actions">
+              <label class="btn ghost small file">Importer CSV
+                <input type="file" id="csv-file" accept=".csv,text/csv" hidden />
+              </label>
+            </div>
+          </div>
+          <p class="hint">Colonnes : <code>phone</code> (obligatoire), <code>name</code>, <code>tags</code> (séparés par <code>|</code>), et toute autre colonne utilisable dans les modèles.</p>
+          <form id="contact-form" class="toolbar">
+            <input name="phone" placeholder="Téléphone" required />
+            <input name="name" placeholder="Nom" />
+            <input name="tags" placeholder="Tags (vip|promo)" />
+            <button type="submit" class="btn primary">Ajouter</button>
+          </form>
+          <form id="search-form" class="toolbar">
+            <input name="q" placeholder="Rechercher nom ou numéro" />
+            <input name="tag" placeholder="Filtrer par tag" />
+          </form>
+          <div class="table-wrap"><table id="contacts"></table></div>
         </div>
       </section>
 
       <!-- Modèles -->
-      <section class="card">
-        <h2>Modèles de message</h2>
-        <p class="hint">Le modèle doit être approuvé par Meta. <code>wa_name</code> = nom exact du modèle dans WhatsApp Manager. Les paramètres <code>{{1}}</code>, <code>{{2}}</code>… correspondent aux champs listés (ex: <code>name,city</code>).</p>
-        <form id="template-form" class="stack">
-          <input name="name" placeholder="Nom interne" required />
-          <input name="wa_name" placeholder="Nom du modèle WhatsApp (ex: rappel_rdv)" required />
-          <div class="row">
-            <input name="language" value="fr" placeholder="Langue (fr, en, ar…)" />
-            <input name="params" placeholder="Champs : name,city" />
+      <section class="page" data-page="templates">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><h2>Nouveau modèle</h2></div>
+            <p class="hint">Le modèle doit être approuvé par Meta. <code>wa_name</code> = nom exact du modèle dans WhatsApp Manager. Les champs listés remplacent <code>{{1}}</code>, <code>{{2}}</code>… dans l'ordre.</p>
+            <form id="template-form" class="stack">
+              <label>Nom interne <input name="name" required /></label>
+              <label>Nom du modèle WhatsApp <input name="wa_name" placeholder="rappel_rdv" required /></label>
+              <div class="row">
+                <label>Langue <input name="language" value="fr" /></label>
+                <label>Champs <input name="params" placeholder="name,city" /></label>
+              </div>
+              <label>Aperçu du texte
+                <textarea name="body" rows="4" placeholder="Bonjour {{name}}, votre rendez-vous à {{city}} est confirmé." required></textarea>
+              </label>
+              <button type="submit" class="btn primary">Créer le modèle</button>
+            </form>
           </div>
-          <textarea name="body" rows="3" placeholder="Aperçu : Bonjour {{name}}, votre rendez-vous à {{city}} est confirmé." required></textarea>
-          <button type="submit">Créer le modèle</button>
-        </form>
-        <ul id="templates" class="list"></ul>
+          <div class="card">
+            <div class="card-head"><h2>Modèles existants</h2></div>
+            <div id="templates" class="list"></div>
+          </div>
+        </div>
       </section>
 
       <!-- Campagnes -->
-      <section class="card wide">
-        <h2>Campagnes</h2>
-        <form id="campaign-form" class="row wrap">
-          <input name="name" placeholder="Nom de la campagne" />
-          <select name="template_id" required id="template-select"></select>
-          <input name="tag" placeholder="Tag ciblé (vide = tous)" />
-          <input name="scheduled_at" type="datetime-local" title="Laisser vide pour envoyer maintenant" />
-          <button type="submit">Lancer</button>
-        </form>
-        <div class="table-wrap">
-          <table id="campaigns"></table>
+      <section class="page" data-page="campaigns">
+        <div class="card">
+          <div class="card-head"><h2>Lancer une campagne</h2></div>
+          <form id="campaign-form" class="toolbar wrap">
+            <input name="name" placeholder="Nom de la campagne" />
+            <select name="template_id" id="template-select" required></select>
+            <input name="tag" placeholder="Tag ciblé (vide = tous)" />
+            <input name="scheduled_at" type="datetime-local" title="Vide = envoi immédiat" />
+            <button type="submit" class="btn primary">Lancer</button>
+          </form>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Historique</h2></div>
+          <div class="table-wrap"><table id="campaigns"></table></div>
         </div>
       </section>
     </div>
-  </main>
+  </div>
 
   <div id="toast" class="toast hidden"></div>
   <script src="/app.js"></script>
